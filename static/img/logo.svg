@@ -1,0 +1,10 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Leaf stalk -->
+  <path d="M16 28C16 28 16 20 16 12" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Main leaf -->
+  <path d="M16 12C16 12 12 8 8 10C6 11 5 14 7 18C9 22 14 26 16 28C18 26 23 22 25 18C27 14 26 11 24 10C20 8 16 12 16 12Z" fill="#1a1a1a"/>
+  
+  <!-- Leaf vein -->
+  <path d="M16 14C16 14 16 20 16 26" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+</svg>

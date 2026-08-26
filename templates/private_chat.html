@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prywatny czat</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
+        <ul class="main-list">
+            <li class="list__item">
+                <a class="account-button" href="/account">Konto</a>
+            </li>
+            <li class="list__item">
+                <a class="account-button" href="/index">Powrot</a>
+            </li>
+        </ul>
+    </header>
+
+    <main class="main private-chat-page">
+        <section class="private-chat-layout">
+            <aside class="panel private-chat-side">
+                <h1 class="panel__title">Prywatne wiadomosci</h1>
+                <p class="panel__text">Twoj kod: <strong>{{ current_user.private_code }}</strong></p>
+                <p class="panel__text">Podaj kod osoby, z ktora chcesz pisac.</p>
+
+                <form action="/private_chat" method="get" class="comment-form">
+                    <label for="code">Kod uzytkownika</label>
+                    <input id="code" type="text" name="code" class="form__input" maxlength="20" value="{{ partner_code }}" placeholder="np. A1B2C3D4" required>
+                    <button type="submit" class="form__button form__button--wide">Otworz rozmowe</button>
+                </form>
+
+                {% if chat_error %}
+                <p class="error">{{ chat_error }}</p>
+                {% endif %}
+            </aside>
+
+            <section class="panel private-chat-main" id="privateChatRoot" data-partner-code="{{ partner_code }}">
+                <div class="private-chat-main__header">
+                    <h2 class="panel__title">Rozmowa</h2>
+                    {% if partner_user %}
+                    <p class="panel__text">Piszesz z: <strong>{{ partner_user.name }}</strong> ({{ partner_user.private_code }})</p>
+                    {% else %}
+                    <p class="panel__text">Wybierz kod, aby rozpoczec rozmowe.</p>
+                    {% endif %}
+                </div>
+
+                <div class="private-messages" id="privateMessages"></div>
+
+                {% if partner_user %}
+                <form id="sendMessageForm" class="comment-form private-chat-form" autocomplete="off">
+                    <textarea id="privateMessageText" class="form__text form__text--comment" placeholder="Napisz prywatna wiadomosc" maxlength="1000" required></textarea>
+                    <button type="submit" class="form__button form__button--wide">Wyslij</button>
+                </form>
+                {% endif %}
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const root = document.getElementById('privateChatRoot');
+            const partnerCode = (root?.dataset.partnerCode || '').trim();
+            const messagesBox = document.getElementById('privateMessages');
+            const sendForm = document.getElementById('sendMessageForm');
+            const textInput = document.getElementById('privateMessageText');
+            const initialMessages = {{ messages|tojson }};
+
+            if (!messagesBox) {
+                return;
+            }
+
+            let lastMessageId = 0;
+
+            function escapeHtml(text) {
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function renderMessage(message) {
+                const row = document.createElement('article');
+                row.className = `private-message ${message.is_mine ? 'private-message--mine' : ''}`;
+                row.innerHTML = `
+                    <p class="private-message__author">${escapeHtml(message.sender_name)}</p>
+                    <p class="private-message__text">${escapeHtml(message.text)}</p>
+                    <p class="private-message__meta">${escapeHtml(message.created_at)}</p>
+                `;
+                messagesBox.appendChild(row);
+                lastMessageId = Math.max(lastMessageId, Number(message.id) || 0);
+            }
+
+            function scrollToBottom() {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            }
+
+            function loadInitialMessages() {
+                if (!Array.isArray(initialMessages)) {
+                    return;
+                }
+                initialMessages.forEach(renderMessage);
+                scrollToBottom();
+            }
+
+            async function fetchNewMessages() {
+                if (!partnerCode) {
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/private_chat/messages?code=${encodeURIComponent(partnerCode)}&after_id=${lastMessageId}`);
+                    const data = await response.json();
+                    if (!data.ok || !Array.isArray(data.messages)) {
+                        return;
+                    }
+                    if (data.messages.length > 0) {
+                        data.messages.forEach(renderMessage);
+                        scrollToBottom();
+                    }
+                } catch (error) {
+                    console.error('Nie udalo sie pobrac nowych wiadomosci', error);
+                }
+            }
+
+            async function sendMessage(text) {
+                const response = await fetch('/api/private_chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: partnerCode,
+                        text: text
+                    })
+                });
+                return response.json();
+            }
+
+            if (sendForm) {
+                sendForm.addEventListener('submit', async function (event) {
+                    event.preventDefault();
+                    const text = (textInput.value || '').trim();
+                    if (!text) {
+                        return;
+                    }
+
+                    const result = await sendMessage(text);
+                    if (!result.ok) {
+                        alert(result.error || 'Nie udalo sie wyslac wiadomosci.');
+                        return;
+                    }
+
+                    if (result.message) {
+                        renderMessage(result.message);
+                        scrollToBottom();
+                    }
+                    textInput.value = '';
+                });
+            }
+
+            loadInitialMessages();
+            if (partnerCode) {
+                setInterval(fetchNewMessages, 2000);
+            }
+        })();
+    </script>
+</body>
+</html>

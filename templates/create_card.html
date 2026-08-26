@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteka programisty</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <img src="../static/img/eko.webp" alt="logo" width="30" height="30">
+        <ul class="main-list">
+            <li class="list__item">
+              <a href="">
+                <img src="../static/img/login.svg" alt="login" width="20" height="20">
+              </a>
+        </ul>
+      </header>
+      <main>
+        {% block content %}
+        {% if draft_saved %}
+        <p class="empty-state">Kopia robocza została zapisana.</p>
+        {% endif %}
+        <form action="{{ url_for('form_create') }}" method="post" class="creat-form">
+            <input type="hidden" name="draft_id" value="{{ draft.id if draft else '' }}">
+            <div class="form__card">
+                <img class="card__img" src="../static/img/post_icon.png" width="250" height="250" alt="post_icon">
+                <div class="form__inputs">
+                    <label for="title">
+                        <input class="form__input" type="text" name="title" id="title" placeholder="Wpisz tytuł wpisu" value="{{ draft.title if draft else '' }}" required>
+                    </label>
+                    <label for="subtitle">
+                        <input class="form__input" type="text" name="subtitle" id="subtitle" placeholder="Wpisz tytuł dodatkowy" value="{{ draft.subtitle if draft else '' }}" required>
+                    </label>
+                    <label for="action_type">
+                        <select class="form__input" name="action_type" id="action_type" required>
+                            {% for action_type in action_types %}
+                            <option value="{{ action_type }}" {% if draft and draft.action_type == action_type %}selected{% endif %}>{{ action_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label for="city">
+                        <input class="form__input" type="text" name="city" id="city" placeholder="Miasto" value="{{ draft.city if draft else '' }}" required>
+                    </label>
+                </div>
+                <label for="text">
+                    <textarea class="form__text" name="text" id="text" cols="30" rows="10" required placeholder="Wpisz jakiś tekst...">{{ draft.text if draft else '' }}</textarea>
+                </label>
+                <button class="form__button" type="submit" name="submit_action" value="publish">Stwórz</button>
+                <button class="form__button" type="submit" name="submit_action" value="save_draft" formnovalidate>Zapisz kopię roboczą</button>
+                <button class="form__button" type="submit" name="submit_action" value="cancel" formnovalidate>Opuść tworzenie</button>
+            </div>
+        </form>
+        {% endblock %}
+      </main>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+  >
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="../static/css/style.css">
+  <title>Biblioteka programisty</title>
+</head>
+<body>
+  <header class="header">
+    <img src="../static/img/eko.webp" alt="logo" width="30" height="30">
+    <ul class="main-list">
+        {% if session.get('user_email') %}
+        <li class="list__item">
+          <a class="account-button" href="/private_chat">Czat prywatny</a>
+        </li>
+        <li class="list__item">
+          <a class="account-button" href="/account">{{ session.get('user_name') or 'Konto' }}</a>
+        </li>
+        {% else %}
+        <li class="list__item">
+          <a href="/login">
+            <img src="../static/img/login.svg" alt="login" width="20" height="20">
+          </a>
+        </li>
+        {% endif %}
+    </ul>
+  </header>
+  <main>
+    {% block content %}
+    <section class="hero">
+      <p class="hero__eyebrow">Ekologia • Wspólne działania • Lokalne inicjatywy</p>
+      <h1 class="main__title">Zobacz, dołącz i działaj razem z innymi</h1>
+      <p class="hero__subtitle">Przeglądaj pomysły innych osób, komentuj je i klikaj <strong>Wchodzę w to!</strong>, jeśli chcesz dołączyć do akcji, marszu albo projektu.</p>
+      <div class="hero__actions">
+        <a class="main__link" href="{{ url_for('create') }}">Dodaj pomysł</a>
+      </div>
+    </section>
+    <section class="filters">
+      <form class="filters__form" method="get" action="/index">
+        <label>
+          <span>Typ akcji</span>
+          <select name="action_type" class="form__input">
+            <option value="">Wszystkie</option>
+            {% for action_type in action_types %}
+            <option value="{{ action_type }}" {% if selected_action_type == action_type %}selected{% endif %}>{{ action_type }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          <span>Miasto</span>
+          <input type="text" name="city" class="form__input" value="{{ selected_city }}" placeholder="np. Warszawa">
+        </label>
+        <button type="submit" class="form__button">Filtruj</button>
+        <a class="main__link filters__reset" href="/index">Wyczyść</a>
+      </form>
+    </section>
+
+    <section class="cards-section">
+      <h2 class="section-title">Moje pomysły</h2>
+      {% if my_cards %}
+      <ul class="cards-list">
+        {% for el in my_cards %}
+        <li class="card">
+          <a class="card__link" href="/card/{{el.id}}">
+            <img class="card__img" src="../static/img/post_icon.png" width="250" height="250" alt="post_icon">
+            <div class="card__text">
+              <h2 class="card__title">{{el.title}}</h2>
+              <p class="card__subtitle">{{el.subtitle}}</p>
+              <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
+              <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
+              <p class="card__meta">Wchodzę w to!: {{ participation_counts[el.id] }}</p>
+            </div>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-state">Nie masz jeszcze własnych wpisów. Dodaj pierwszy projekt.</p>
+      {% endif %}
+    </section>
+
+    <section class="cards-section">
+      <h2 class="section-title">Inicjatywy innych osób</h2>
+      {% if other_cards %}
+      <ul class="cards-list">
+        {% for el in other_cards %}
+        <li class="card">
+          <a class="card__link" href="/card/{{el.id}}">
+            <img class="card__img" src="../static/img/post_icon.png" width="250" height="250" alt="post_icon">
+            <div class="card__text">
+              <h2 class="card__title">{{el.title}}</h2>
+              <p class="card__subtitle">{{el.subtitle}}</p>
+              <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
+              <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
+              <p class="card__meta">Wchodzę w to!: {{ participation_counts[el.id] }}</p>
+            </div>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty-state">Brak wpisów innych użytkowników dla wybranego filtra.</p>
+      {% endif %}
+    </section>
+
+    <!-- <section class="cards-section">
+      <h2 class="section-title">Dodaj własny pomysł</h2>
+      <ul class="cards-list">
+        <li class="card card--creat">
+          <a class="creat__link" href="{{ url_for('create') }}" aria-label="Dodaj nowy pomysł"></a>
+        </li>
+      </ul>
+    </section> -->
+
+    {% endblock %}
+  </main>
+  <footer>
+
+  </footer>
+</body>
+</html>

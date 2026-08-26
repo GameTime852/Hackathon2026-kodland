@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+  >
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="../static/css/style.css">
+  <title>Biblioteka programisty</title>
+</head>
+<body>
+  <header class="header">
+    <img src="../static/img/eko.webp" alt="logo" width="30" height="30">
+    <ul class="main-list">
+        <li class="list__item">
+          <a href="/login">
+            <img src="../static/img/login.svg" alt="login" width="20" height="20">
+          </a>
+    </ul>
+  </header>
+  <main class="main">
+    {% block content %}
+    <section class="card-page">
+      <div class="card-page__content">
+        <p class="card-page__badge">Inicjatywa społeczności</p>
+        <h1 class="main__title">{{card.title}}</h1>
+        <div class="main__block">
+          <h2 class="main__subtitle">{{card.subtitle}}</h2>
+          <p class="card-page__author">{{ card.action_type or 'Pomysł' }} • {{ card.city or 'Bez miasta' }}</p>
+          <p class="card-page__author">Autor: {{ card.user_name or card.user_email }}</p>
+          <div class="main__text">
+          {{card.text}}
+          </div>
+          <div class="card-page__stats">
+            <span>Wchodzę w to!: {{ participation_count }}</span>
+            <span>Komentarze: {{ comments|length }}</span>
+          </div>
+          {% if session.get('user_email') == card.user_email or session.get('is_admin') %}
+          <form action="/delete_card/{{ card.id }}" method="post" class="inline-actions">
+            <button type="submit" class="main__link main__link--danger">Usuń kartę</button>
+          </form>
+          {% endif %}
+          <a class="main__link" href="/index">Powrót do listy</a>
+        </div>
+      </div>
+
+      <aside class="card-page__sidebar">
+        <div class="panel">
+          <h3 class="panel__title">Dołącz do akcji</h3>
+          <p class="panel__text">Jeśli chcesz wziąć udział, kliknij przycisk poniżej.</p>
+          <form action="/join_card/{{ card.id }}" method="post">
+            <button type="submit" class="form__button form__button--wide {% if has_joined %}form__button--active{% endif %}">
+              {% if has_joined %}Jesteś już w środku{% else %}Wchodzę w to!{% endif %}
+            </button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel__title">Dodaj komentarz</h3>
+          <form action="/comment_card/{{ card.id }}" method="post" class="comment-form">
+            <textarea name="text" class="form__text form__text--comment" placeholder="Napisz, jak możesz pomóc albo co sądzisz o tej inicjatywie"></textarea>
+            <button type="submit" class="form__button form__button--wide">Opublikuj komentarz</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3 class="panel__title">Komentarze</h3>
+          <div class="comments-list">
+            {% for comment in comments %}
+            <article class="comment">
+              <p class="comment__author">{{ comment.user_name or comment.user_email }}</p>
+              <p class="comment__text">{{ comment.text }}</p>
+            </article>
+            {% else %}
+            <p class="panel__text">Brak komentarzy. Bądź pierwszą osobą, która zacznie rozmowę.</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if session.get('user_email') == card.user_email or session.get('is_admin') %}
+        <div class="panel">
+          <h3 class="panel__title">Kto kliknął „Wchodzę w to!”</h3>
+          <div class="comments-list">
+            {% for participant in participants %}
+            <article class="comment">
+              <p class="comment__author">{{ participant.user_name or participant.user_email }}</p>
+              <p class="comment__text">{{ participant.user_email }}</p>
+            </article>
+            {% else %}
+            <p class="panel__text">Jeszcze nikt nie kliknął udziału.</p>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </aside>
+    </section>
+  </main>
+  {% endblock %}
+  <footer>
+
+  </footer>
+</body>
+</html>
