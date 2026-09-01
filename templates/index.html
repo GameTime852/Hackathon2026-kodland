@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8">
   <meta
@@ -8,16 +8,25 @@
   >
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <link rel="stylesheet" href="../static/css/style.css">
-  <title>Biblioteka programisty</title>
+  <link rel="icon" href="../static/img/eko.webp">
+  <title>Social Changes</title>
 </head>
 <body>
   <header class="header">
     <img src="../static/img/eko.webp" alt="logo" width="30" height="30">
     <ul class="main-list">
+        <li class="list__item">
+          <a class="account-button" href="/info">Info</a>
+        </li>
         {% if session.get('user_email') %}
         <li class="list__item">
           <a class="account-button" href="/private_chat">Czat prywatny</a>
         </li>
+        {% if session.get('is_admin') %}
+        <li class="list__item">
+          <a class="account-button" href="/admin/accounts">Portal administratora</a>
+        </li>
+        {% endif %}
         <li class="list__item">
           <a class="account-button" href="/account">{{ session.get('user_name') or 'Konto' }}</a>
         </li>
@@ -73,9 +82,15 @@
               <p class="card__subtitle">{{el.subtitle}}</p>
               <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
               <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
-              <p class="card__meta">Wchodzę w to!: {{ participation_counts[el.id] }}</p>
+              <p class="card__participation-summary"><strong>{{ participation_counts[el.id] }}</strong> osób wchodzi w to!</p>
             </div>
           </a>
+          <form action="/join_card/{{ el.id }}" method="post" class="card__participation-form">
+            <input type="hidden" name="next" value="/index">
+            <button type="submit" class="form__button card__participation-button {% if el.id in joined_card_ids %}form__button--active{% endif %}">
+              {% if el.id in joined_card_ids %}Rezygnuję z udziału{% else %}Wchodzę w to!{% endif %}
+            </button>
+          </form>
         </li>
         {% endfor %}
       </ul>
@@ -97,9 +112,15 @@
               <p class="card__subtitle">{{el.subtitle}}</p>
               <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
               <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
-              <p class="card__meta">Wchodzę w to!: {{ participation_counts[el.id] }}</p>
+              <p class="card__participation-summary"><strong>{{ participation_counts[el.id] }}</strong> osób wchodzi w to!</p>
             </div>
           </a>
+          <form action="/join_card/{{ el.id }}" method="post" class="card__participation-form">
+            <input type="hidden" name="next" value="/index">
+            <button type="submit" class="form__button card__participation-button {% if el.id in joined_card_ids %}form__button--active{% endif %}">
+              {% if el.id in joined_card_ids %}Rezygnuję z udziału{% else %}Wchodzę w to!{% endif %}
+            </button>
+          </form>
         </li>
         {% endfor %}
       </ul>

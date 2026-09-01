@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Changes</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="icon" href="../static/img/eko.webp">
+</head>
+<body>
+    <header class="header">
+        <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
+        <ul class="main-list">
+            <li class="list__item">
+                <a class="account-button" href="/info">Info</a>
+            </li>
+            <li class="list__item">
+                <a class="account-button" href="/account">Konto</a>
+            </li>
+            <li class="list__item">
+                <a class="account-button" href="/index">Powrót</a>
+            </li>
+        </ul>
+    </header>
+
+    <main class="main-login">
+        <div class="login account-panel admin-panel">
+            <h1>Admin - ustawienia kont</h1>
+
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+            {% if message %}
+            <p class="account-success">{{ message }}</p>
+            {% endif %}
+
+            <section class="admin-stats" aria-label="Statystyki portalu">
+                <div class="admin-stat"><strong>{{ stats.users }}</strong><span>kont</span></div>
+                <div class="admin-stat"><strong>{{ stats.admins }}</strong><span>administratorów</span></div>
+                <div class="admin-stat"><strong>{{ stats.published_cards }}</strong><span>opublikowanych kart</span></div>
+                <div class="admin-stat"><strong>{{ stats.drafts }}</strong><span>szkiców</span></div>
+                <div class="admin-stat"><strong>{{ stats.comments }}</strong><span>komentarzy</span></div>
+                <div class="admin-stat"><strong>{{ stats.messages }}</strong><span>wiadomości</span></div>
+            </section>
+
+            <section class="drafts-panel">
+                <div class="drafts-panel__header">
+                    <h2>Potwierdzenie tożsamości użytkownika</h2>
+                </div>
+                <p class="panel__text">Podaj e-mail i 5-cyfrowy kod zabezpieczający użytkownika. Dopiero po potwierdzeniu możesz zmienić hasło lub usunąć konto.</p>
+
+                <form action="/admin/accounts" method="POST" class="account-form">
+                    <input type="hidden" name="action" value="verify_identity">
+                    <label for="target_email_verify">
+                        <span>E-mail użytkownika</span>
+                        <input class="form__input" id="target_email_verify" type="email" name="target_email" value="{{ verified_email }}" required>
+                    </label>
+                    <label for="security_code">
+                        <span>5-cyfrowy kod zabezpieczający</span>
+                        <input class="form__input" id="security_code" type="text" name="security_code" minlength="5" maxlength="5" pattern="[0-9]{5}" required>
+                    </label>
+                    <button type="submit" class="form__button form__button--wide">Potwierdź tożsamość</button>
+                </form>
+
+                <form action="/admin/accounts" method="POST" class="account-form admin-clear-form">
+                    <input type="hidden" name="action" value="clear_verification">
+                    <button type="submit" class="form__button form__button--wide">Wyczyść potwierdzenie</button>
+                </form>
+            </section>
+
+            <section class="drafts-panel">
+                <div class="drafts-panel__header">
+                    <h2>Potwierdzony użytkownik</h2>
+                </div>
+
+                {% if verified_user %}
+                <p class="panel__text"><strong>{{ verified_user.email }}</strong> ({{ verified_user.name or 'brak nicku' }})</p>
+
+                <form action="/admin/accounts" method="POST" class="account-form">
+                    <input type="hidden" name="action" value="admin_change_password">
+                    <input type="hidden" name="target_email" value="{{ verified_user.email }}">
+                    <label for="admin_new_password">
+                        <span>Nowe hasło</span>
+                        <input class="form__input" id="admin_new_password" type="password" name="new_password" minlength="6" required>
+                    </label>
+                    <label for="admin_confirm_password">
+                        <span>Powtórz nowe hasło</span>
+                        <input class="form__input" id="admin_confirm_password" type="password" name="confirm_password" minlength="6" required>
+                    </label>
+                    <button type="submit" class="form__button form__button--wide">Zmień hasło użytkownika</button>
+                </form>
+
+                <form action="/admin/accounts" method="POST" class="account-form" onsubmit="return confirm('Czy na pewno zresetować kod zabezpieczający tego użytkownika?');">
+                    <input type="hidden" name="action" value="admin_reset_codes">
+                    <input type="hidden" name="target_email" value="{{ verified_user.email }}">
+                    <button type="submit" class="form__button form__button--wide">Zresetuj zabezpieczenia</button>
+                </form>
+
+                <form action="/admin/accounts" method="POST" class="account-form">
+                    <input type="hidden" name="action" value="admin_toggle_role">
+                    <input type="hidden" name="target_email" value="{{ verified_user.email }}">
+                    <button type="submit" class="form__button form__button--wide" {% if verified_user.email == session.get('user_email') %}disabled{% endif %}>
+                        {% if verified_user.is_admin %}Odbierz rolę administratora{% else %}Nadaj rolę administratora{% endif %}
+                    </button>
+                </form>
+
+                <form action="/admin/accounts" method="POST" class="account-form" onsubmit="return confirm('Czy na pewno zakończyć wszystkie sesje tego użytkownika?');">
+                    <input type="hidden" name="action" value="admin_logout_user">
+                    <input type="hidden" name="target_email" value="{{ verified_user.email }}">
+                    <button type="submit" class="form__button form__button--wide" {% if verified_user.email == session.get('user_email') %}disabled{% endif %}>Zakończ wszystkie sesje</button>
+                </form>
+
+                <form action="/admin/accounts" method="POST" class="account-form" onsubmit="return confirm('Czy na pewno chcesz usunąć to konto?');">
+                    <input type="hidden" name="action" value="admin_delete_account">
+                    <input type="hidden" name="target_email" value="{{ verified_user.email }}">
+                    <label for="confirm_text">
+                        <span>Aby usunąć konto, wpisz dokładnie: USUN</span>
+                        <input class="form__input" id="confirm_text" type="text" name="confirm_text" required>
+                    </label>
+                    <button type="submit" class="form__button form__button--wide account-delete">Usuń konto użytkownika</button>
+                </form>
+                {% else %}
+                <p class="empty-state drafts-panel__empty">Brak potwierdzonego użytkownika. Najpierw wykonaj potwierdzenie e-mail + kod.</p>
+                {% endif %}
+            </section>
+
+            <section class="drafts-panel">
+                <div class="drafts-panel__header">
+                    <h2>Lista kont</h2>
+                </div>
+                <form action="/admin/accounts" method="GET" class="admin-filter-form">
+                    <input class="form__input" type="search" name="search" value="{{ search_query }}" placeholder="Szukaj po e-mailu lub nicku">
+                    <select class="form__input" name="role">
+                        <option value="">Wszystkie role</option>
+                        <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Administratorzy</option>
+                        <option value="user" {% if role_filter == 'user' %}selected{% endif %}>Użytkownicy</option>
+                    </select>
+                    <button type="submit" class="form__button">Szukaj</button>
+                    <a class="main__link filters__reset" href="/admin/accounts">Wyczyść</a>
+                </form>
+                <div class="admin-users-table-wrap">
+                    <table class="admin-users-table">
+                        <thead>
+                            <tr>
+                                <th>E-mail</th>
+                                <th>Nick</th>
+                                <th>Rola</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in users %}
+                            <tr>
+                                <td>{{ item.email }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{% if item.is_admin %}Admin{% else %}Użytkownik{% endif %}</td>
+                                <td class="admin-actions">
+                                    <form action="/admin/accounts" method="POST">
+                                        <input type="hidden" name="action" value="verify_identity">
+                                        <input type="hidden" name="target_email" value="{{ item.email }}">
+                                        <input class="form__input form__input--compact" type="text" name="security_code" minlength="5" maxlength="5" pattern="[0-9]{5}" placeholder="Kod" required>
+                                        <button type="submit" class="form__button form__button--compact">Potwierdź</button>
+                                    </form>
+                                    <form action="/admin/accounts" method="POST" onsubmit="return confirm('Czy na pewno usunąć wszystkie wiadomości tego użytkownika?') && confirm('To działanie jest nieodwracalne. Potwierdź usunięcie wiadomości jeszcze raz.');">
+                                        <input type="hidden" name="action" value="admin_delete_messages_unverified">
+                                        <input type="hidden" name="target_email" value="{{ item.email }}">
+                                        <button type="submit" class="form__button form__button--compact">Usuń wiadomości</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+</html>

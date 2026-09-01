@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biblioteka programisty</title>
+    <title>Social Changes</title>
     <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="icon" href="../static/img/eko.webp">
 </head>
 <body>
     <header class="header">
@@ -23,6 +24,7 @@
         <p class="empty-state">Kopia robocza została zapisana.</p>
         {% endif %}
         <form action="{{ url_for('form_create') }}" method="post" class="creat-form">
+            <input type="hidden" name="card_id" value="{{ draft.id if editing and draft else '' }}">
             <input type="hidden" name="draft_id" value="{{ draft.id if draft else '' }}">
             <div class="form__card">
                 <img class="card__img" src="../static/img/post_icon.png" width="250" height="250" alt="post_icon">
@@ -47,8 +49,8 @@
                 <label for="text">
                     <textarea class="form__text" name="text" id="text" cols="30" rows="10" required placeholder="Wpisz jakiś tekst...">{{ draft.text if draft else '' }}</textarea>
                 </label>
-                <button class="form__button" type="submit" name="submit_action" value="publish">Stwórz</button>
-                <button class="form__button" type="submit" name="submit_action" value="save_draft" formnovalidate>Zapisz kopię roboczą</button>
+                <button class="form__button" type="submit" name="submit_action" value="publish">{% if editing %}Zapisz zmiany{% else %}Stwórz{% endif %}</button>
+                {% if not editing %}<button class="form__button" type="submit" name="submit_action" value="save_draft" formnovalidate>Zapisz kopię roboczą</button>{% endif %}
                 <button class="form__button" type="submit" name="submit_action" value="cancel" formnovalidate>Opuść tworzenie</button>
             </div>
         </form>

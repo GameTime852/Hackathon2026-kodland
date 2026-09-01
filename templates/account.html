@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje konto</title>
+    <title>Social Changes</title>
     <link rel="stylesheet" href="../static/css/style.css">
+      <link rel="icon" href="../static/img/eko.webp">
 </head>
 <body>
     <header class="header">
         <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
         <ul class="main-list">
+            <li class="list__item">
+                <a class="account-button" href="/info">Info</a>
+            </li>
             <li class="list__item">
                 <a class="account-button" href="/index">Powrót</a>
             </li>
@@ -17,9 +21,12 @@
     </header>
     <main class="main-login">
         <div class="login account-panel">
-            <h1>Moje konto</h1>
+            <h1>Social Changes</h1>
             {% if error %}
             <p class="error">{{ error }}</p>
+            {% endif %}
+            {% if message %}
+            <p class="account-success">{{ message }}</p>
             {% endif %}
 
             <p class="account-email">{{ user.email }}</p>
@@ -30,14 +37,42 @@
                 <p class="private-code-box__hint">Podaj ten kod wybranej osobie, aby mogła napisać do Ciebie na czacie prywatnym.</p>
             </div>
 
+            <div class="private-code-box private-code-box--security">
+                <p class="private-code-box__label">Twój 5-cyfrowy kod zabezpieczający</p>
+                <p class="private-code-box__value">{{ user.security_code }}</p>
+                <p class="private-code-box__hint">Podawaj go tylko zaufanej osobie. Admin używa go do potwierdzenia Twojej tożsamości.</p>
+            </div>
+
             <a href="/private_chat" class="form__button form__button--wide account-link">Przejdź do czatu prywatnego</a>
 
+            {% if session.get('is_admin') %}
+            <a href="/admin/accounts" class="form__button form__button--wide account-link">Admin: ustawienia kont</a>
+            {% endif %}
+
             <form action="/account" method="POST" class="account-form">
+                <input type="hidden" name="action" value="update_name">
                 <label for="name">
                     <span>Nick</span>
                     <input class="form__input" type="text" id="name" name="name" value="{{ user.name }}" required>
                 </label>
                 <button type="submit" class="form__button form__button--wide">Zapisz nick</button>
+            </form>
+
+            <form action="/account" method="POST" class="account-form">
+                <input type="hidden" name="action" value="change_password">
+                <label for="current_password">
+                    <span>Aktualne hasło</span>
+                    <input class="form__input" type="password" id="current_password" name="current_password" required>
+                </label>
+                <label for="new_password">
+                    <span>Nowe hasło</span>
+                    <input class="form__input" type="password" id="new_password" name="new_password" minlength="6" required>
+                </label>
+                <label for="confirm_password">
+                    <span>Powtórz nowe hasło</span>
+                    <input class="form__input" type="password" id="confirm_password" name="confirm_password" minlength="6" required>
+                </label>
+                <button type="submit" class="form__button form__button--wide">Zmień hasło</button>
             </form>
 
             <section class="drafts-panel">

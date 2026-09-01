@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../static/css/style.css">
+<link rel="icon" href="../static/img/eko.webp">
+  <title>Social Changes</title>
+</head>
+<body class="info-theme">
+  <header class="header">
+    <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
+    <ul class="main-list">
+      <li class="list__item">
+        <a class="account-button" href="/info">Info</a>
+      </li>
+      {% if session.get('user_email') %}
+      <li class="list__item">
+        <a class="account-button" href="/private_chat">Czat prywatny</a>
+      </li>
+      <li class="list__item">
+        <a class="account-button" href="/account">{{ session.get('user_name') or 'Konto' }}</a>
+      </li>
+      {% else %}
+      <li class="list__item">
+        <a class="account-button" href="/login">Logowanie</a>
+      </li>
+      {% endif %}
+    </ul>
+  </header>
+
+  <main class="main info-page">
+    <section class="hero info-hero info-hero--fancy">
+      <p class="hero__eyebrow">Mniej emisji • Lepsze miasta • Zdrowsze życie</p>
+      <h1 class="main__title">Jak przeciwdziałać ociepleniu klimatu</h1>
+      <p class="hero__subtitle">Największy efekt dają regularne, codzienne decyzje: energia, transport, jedzenie i wspólne działania lokalne.</p>
+      <div class="info-badges">
+        <span class="info-badge">dom</span>
+        <span class="info-badge">transport</span>
+        <span class="info-badge">jedzenie</span>
+        <span class="info-badge">wspólnota</span>
+      </div>
+    </section>
+
+    <section class="info-grid info-grid--stats">
+      <article class="panel info-card info-card--stat">
+        <p class="info-stat__value">1 stopien mniej</p>
+        <h2 class="panel__title">Ogrzewanie</h2>
+        <p class="panel__text">Niewielka zmiana temperatury w domu, a duża oszczędność energii przez cały sezon.</p>
+      </article>
+
+      <article class="panel info-card info-card--stat">
+        <p class="info-stat__value">Krotsze trasy pieszo</p>
+        <h2 class="panel__title">Mobilnosc</h2>
+        <p class="panel__text">Każdy spacer lub przejazd rowerem zamiast autem to mniej emisji i czystsze powietrze.</p>
+      </article>
+
+      <article class="panel info-card info-card--stat">
+        <p class="info-stat__value">Mniej marnowania</p>
+        <h2 class="panel__title">Zakupy</h2>
+        <p class="panel__text">Planowanie posiłków i wykorzystywanie zapasów realnie zmniejsza ślad klimatyczny.</p>
+      </article>
+    </section>
+
+    <section class="info-grid">
+      <article class="panel info-card">
+        <h2 class="panel__title">1. Oszczędzaj energię w domu</h2>
+        <ul class="info-list">
+          <li>Wymień żarówki na LED i wyłączaj światło tam, gdzie go nie używasz.</li>
+          <li>Ustaw niższą temperaturę ogrzewania zimą o 1 stopień.</li>
+          <li>Odłączaj ładowarki i urządzenia z trybu czuwania.</li>
+        </ul>
+      </article>
+
+      <article class="panel info-card">
+        <h2 class="panel__title">2. Wybieraj transport niskoemisyjny</h2>
+        <ul class="info-list">
+          <li>Na krótkie dystanse wybieraj rower, spacer lub komunikację miejską.</li>
+          <li>Łącz kilka spraw w jeden przejazd, by ograniczyć liczbę kursów autem.</li>
+          <li>Jeśli możesz, korzystaj z carpoolingu.</li>
+        </ul>
+      </article>
+
+      <article class="panel info-card">
+        <h2 class="panel__title">3. Jedz bardziej roślinnie i nie marnuj</h2>
+        <ul class="info-list">
+          <li>Zwiększ udział posiłków roślinnych w tygodniu.</li>
+          <li>Planuj zakupy i wykorzystuj produkty do końca.</li>
+          <li>Wybieraj sezonowe, lokalne produkty.</li>
+        </ul>
+      </article>
+
+      <article class="panel info-card">
+        <h2 class="panel__title">4. Ograniczaj odpady i kupuj odpowiedzialnie</h2>
+        <ul class="info-list">
+          <li>Używaj rzeczy wielorazowych: butelki, kubki, torby.</li>
+          <li>Naprawiaj przedmioty zamiast od razu kupować nowe.</li>
+          <li>Segreguj odpady i oddawaj elektrośmieci do punktów zbiórki.</li>
+        </ul>
+      </article>
+
+      <article class="panel info-card">
+        <h2 class="panel__title">5. Działaj lokalnie i społecznie</h2>
+        <ul class="info-list">
+          <li>Wspieraj nasadzenia drzew i zazielenianie osiedla.</li>
+          <li>Dołączaj do lokalnych inicjatyw i konsultacji miejskich.</li>
+          <li>Dziel się wiedzą z innymi i zachęcaj do małych kroków.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="panel info-summary">
+      <h2 class="panel__title">Plan na 7 dni</h2>
+      <p class="panel__text">Wybierz trzy rzeczy na najbliższy tydzień: jeden nawyk energetyczny, jedną zmianę w transporcie i jedną zmianę zakupową. Małe kroki, powtarzane regularnie, realnie zmniejszają ślad klimatyczny.</p>
+      <ol class="info-checklist">
+        <li>Dzisiaj: wymień lub wyłącz jedno stałe zużycie energii.</li>
+        <li>Jutro: zaplanuj jeden przejazd bez auta.</li>
+        <li>W tym tygodniu: zrób zakupy bez marnowania jedzenia.</li>
+      </ol>
+      <a class="main__link" href="/index">Wróć do strony głównej</a>
+    </section>
+  </main>
+</body>
+</html>

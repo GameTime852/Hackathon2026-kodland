@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prywatny czat</title>
+    <title>Social Changes</title>
     <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="icon" href="../static/img/eko.webp">
 </head>
 <body>
     <header class="header">
         <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
         <ul class="main-list">
+            <li class="list__item">
+                <a class="account-button" href="/info">Info</a>
+            </li>
             <li class="list__item">
                 <a class="account-button" href="/account">Konto</a>
             </li>
@@ -35,6 +39,11 @@
                 {% if chat_error %}
                 <p class="error">{{ chat_error }}</p>
                 {% endif %}
+
+                <section class="private-chat-conversations">
+                    <h2 class="panel__title">Twoje rozmowy</h2>
+                    <div class="private-conversations" id="conversationList"></div>
+                </section>
             </aside>
 
             <section class="panel private-chat-main" id="privateChatRoot" data-partner-code="{{ partner_code }}">
@@ -67,12 +76,15 @@
             const sendForm = document.getElementById('sendMessageForm');
             const textInput = document.getElementById('privateMessageText');
             const initialMessages = {{ messages|tojson }};
+            const initialConversations = {{ conversations|tojson }};
+            const conversationList = document.getElementById('conversationList');
 
             if (!messagesBox) {
                 return;
             }
 
             let lastMessageId = 0;
+            const renderedMessageIds = new Set();
 
             function escapeHtml(text) {
                 return String(text)
@@ -84,6 +96,11 @@
             }
 
             function renderMessage(message) {
+                const messageId = Number(message.id) || 0;
+                if (messageId > 0 && renderedMessageIds.has(messageId)) {
+                    return;
+                }
+
                 const row = document.createElement('article');
                 row.className = `private-message ${message.is_mine ? 'private-message--mine' : ''}`;
                 row.innerHTML = `
@@ -92,7 +109,109 @@
                     <p class="private-message__meta">${escapeHtml(message.created_at)}</p>
                 `;
                 messagesBox.appendChild(row);
-                lastMessageId = Math.max(lastMessageId, Number(message.id) || 0);
+
+                if (messageId > 0) {
+                    renderedMessageIds.add(messageId);
+                }
+                lastMessageId = Math.max(lastMessageId, messageId);
+            }
+
+            function renderConversations(conversations) {
+                if (!conversationList) {
+                    return;
+                }
+
+                conversationList.innerHTML = '';
+                if (!Array.isArray(conversations) || conversations.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'panel__text private-conversations__empty';
+                    empty.textContent = 'Brak rozmow. Wyszukaj osobe po kodzie i napisz pierwsza wiadomosc.';
+                    conversationList.appendChild(empty);
+                    return;
+                }
+
+                conversations.forEach(function (conversation) {
+                    const partnerCode = String(conversation.partner_code || '').trim();
+                    const isActive = partnerCode && partnerCode === partnerCodeFromPage;
+
+                    const itemTag = partnerCode ? 'a' : 'article';
+                    const row = document.createElement(itemTag);
+                    row.className = `private-conversation ${isActive ? 'private-conversation--active' : ''} ${conversation.unread_count > 0 ? 'private-conversation--unread' : ''}`;
+
+                    if (partnerCode) {
+                        row.href = `/private_chat?code=${encodeURIComponent(partnerCode)}`;
+                    }
+
+                    const unreadBadge = conversation.unread_count > 0
+                        ? `<span class="private-conversation__badge">${conversation.unread_count}</span>`
+                        : '';
+
+                    row.innerHTML = `
+                        <div class="private-conversation__top">
+                            <p class="private-conversation__name">${escapeHtml(conversation.partner_name || 'Nieznany użytkownik')}</p>
+                            <p class="private-conversation__time">${escapeHtml(conversation.last_message_at || '')}</p>
+                        </div>
+                        <p class="private-conversation__preview">${escapeHtml(conversation.last_message_preview || '')}</p>
+                        <div class="private-conversation__bottom">
+                            <span class="private-conversation__status">${escapeHtml(conversation.status_label || '')}</span>
+                            ${unreadBadge}
+                        </div>
+                    `;
+
+                    conversationList.appendChild(row);
+                });
+            }
+
+            async function fetchConversations() {
+                if (!conversationList) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/private_chat/conversations');
+                    const data = await response.json();
+
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    if (data.ok && Array.isArray(data.conversations)) {
+                        renderConversations(data.conversations);
+                    }
+                } catch (error) {
+                    console.error('Nie udalo sie pobrac listy rozmow', error);
+                }
+            }
+
+            async function markConversationRead() {
+                if (!partnerCode) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/private_chat/mark_read', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            code: partnerCode
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    if (data.ok && Array.isArray(data.conversations)) {
+                        renderConversations(data.conversations);
+                    }
+                } catch (error) {
+                    console.error('Nie udalo sie oznaczyc rozmowy jako odczytanej', error);
+                }
             }
 
             function scrollToBottom() {
@@ -114,16 +233,48 @@
                 try {
                     const response = await fetch(`/api/private_chat/messages?code=${encodeURIComponent(partnerCode)}&after_id=${lastMessageId}`);
                     const data = await response.json();
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
                     if (!data.ok || !Array.isArray(data.messages)) {
                         return;
                     }
                     if (data.messages.length > 0) {
                         data.messages.forEach(renderMessage);
                         scrollToBottom();
+                        fetchConversations();
                     }
                 } catch (error) {
                     console.error('Nie udalo sie pobrac nowych wiadomosci', error);
                 }
+            }
+
+            async function waitForNewMessages() {
+                if (!partnerCode) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/private_chat/messages/wait?code=${encodeURIComponent(partnerCode)}&after_id=${lastMessageId}&timeout=25`);
+                    const data = await response.json();
+
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    if (data.ok && Array.isArray(data.messages) && data.messages.length > 0) {
+                        data.messages.forEach(renderMessage);
+                        scrollToBottom();
+                        fetchConversations();
+                    }
+                } catch (error) {
+                    console.error('Nie udalo sie nasluchiwac nowych wiadomosci', error);
+                }
+
+                // Kontynuuj nasluch po kazdej odpowiedzi, aby odswiezac rozmowe niemal od razu.
+                waitForNewMessages();
             }
 
             async function sendMessage(text) {
@@ -157,14 +308,21 @@
                     if (result.message) {
                         renderMessage(result.message);
                         scrollToBottom();
+                        fetchConversations();
                     }
                     textInput.value = '';
                 });
             }
 
+            const partnerCodeFromPage = partnerCode;
+            renderConversations(initialConversations);
             loadInitialMessages();
+            markConversationRead();
+            setInterval(fetchConversations, 5000);
+
             if (partnerCode) {
-                setInterval(fetchNewMessages, 2000);
+                fetchNewMessages();
+                waitForNewMessages();
             }
         })();
     </script>
