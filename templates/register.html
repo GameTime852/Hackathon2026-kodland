@@ -10,11 +10,25 @@
     <link rel="stylesheet" href="../static/css/style.css">
 <link rel="icon" href="../static/img/eko.webp">         
     <title>Social Changes</title>
+    <script>
+      // Ustawaj dark mode PRZED wyrenderowaniem aby uniknąć mrugnięcia
+      (function() {
+        const darkMode = localStorage.getItem('dark-mode');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (darkMode === 'enabled' || (darkMode === null && systemPrefersDark)) {
+          document.documentElement.classList.add('dark-mode-init');
+        }
+      })();
+    </script>
+    <script src="../static/js/dark-mode.js" defer></script>
 </head>
 <body>
     <header class="header">
         <img src="../static/img/eko.webp" alt="logo" width="30" height="30">
         <ul class="main-list">
+            <li class="list__item">
+                <button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleDarkMode();" aria-label="Włącz tryb ciemny" title="Ciemny wygląd">🌙</button>
+            </li>
             <li class="list__item">
                 <a class="account-button" href="/info">Info</a>
             </li>

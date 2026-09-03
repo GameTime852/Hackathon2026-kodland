@@ -27,7 +27,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 # Creating a DB
 db = SQLAlchemy(app)
 
-ACTION_TYPES = ['Pomysł', 'Marsz', 'Strajk', 'Pomoc', 'Sprzątanie', 'Inne']
+ACTION_TYPES = ['Pomysł', 'Marsz', 'Strajk', 'Pomoc', 'Sprzątanie', 'Edukacja', 'Petycja', 'Kampania', 'Pracownia', 'Spotkanie', 'Wolontariat', 'Zbiórka', 'Inne']
 PRIVATE_CODE_CHARS = string.ascii_uppercase + string.digits
 PRIVATE_CODE_LENGTH = 8
 SECURITY_CODE_CHARS = string.digits
