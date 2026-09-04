@@ -8,6 +8,8 @@ import os
 import secrets
 import string
 import time
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 
 
 app = Flask(__name__)
@@ -18,6 +20,8 @@ app.secret_key = 'jabfjbveou45201'
 # Upewnij się, że folder instance istnieje i użyj jednej, jawnej ścieżki do bazy.
 os.makedirs(app.instance_path, exist_ok=True)
 db_path = os.path.join(app.instance_path, 'diary.db')
+upload_dir = os.path.join(app.static_folder, 'img', 'uploads')
+os.makedirs(upload_dir, exist_ok=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -32,6 +36,19 @@ PRIVATE_CODE_CHARS = string.ascii_uppercase + string.digits
 PRIVATE_CODE_LENGTH = 8
 SECURITY_CODE_CHARS = string.digits
 SECURITY_CODE_LENGTH = 5
+PROFILE_RANKS = ['Nowy uczestnik', 'Zaangażowany', 'Aktywista', 'Lider społeczności']
+RANK_BENEFITS = {
+    'Nowy uczestnik': 'Możesz publikować karty i dołączać do lokalnych akcji.',
+    'Zaangażowany': 'Otrzymujesz wyróżnienie aktywnego uczestnika i priorytet na liście autorów.',
+    'Aktywista': 'Twoje akcje są oznaczane jako aktywne, a profil zyskuje odznakę Aktywista.',
+    'Lider społeczności': 'Otrzymujesz wyróżnienie lidera i specjalną odznakę przy profilu.',
+}
+RANK_FEATURES = {
+    'Nowy uczestnik': ['Publikowanie kart', 'Dołączanie do akcji'],
+    'Zaangażowany': ['Odznaka aktywności', 'Priorytet na liście autorów', 'Wyróżnione komentarze'],
+    'Aktywista': ['Odznaka Aktywista', 'Wyróżnianie własnych akcji', 'Specjalny kolor profilu'],
+    'Lider społeczności': ['Odznaka Lidera', 'Wyróżnianie akcji społeczności', 'Priorytetowe wsparcie', 'Panel lidera'],
+}
 
 #Zadanie nr 1. Utwórz tabelę DB
 
@@ -52,12 +69,20 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     private_code = db.Column(db.String(20), unique=True, nullable=False)
     security_code = db.Column(db.String(5), unique=True, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     session_token = db.Column(db.String(64), nullable=False, default='')
     session_expires_at = db.Column(db.DateTime, nullable=True)
+    bio = db.Column(db.Text, nullable=False, default='')
+    location = db.Column(db.String(120), nullable=False, default='')
+    avatar_filename = db.Column(db.String(255), nullable=False, default='')
+    banner_filename = db.Column(db.String(255), nullable=False, default='')
+    profile_rank = db.Column(db.String(60), nullable=False, default='Nowy uczestnik')
+    profile_public = db.Column(db.Boolean, nullable=False, default=True)
+    show_private_code = db.Column(db.Boolean, nullable=False, default=False)
+    allow_messages = db.Column(db.Boolean, nullable=False, default=True)
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -92,6 +117,25 @@ class PrivateMessage(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
+class ProfileRating(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    profile_email = db.Column(db.String(120), nullable=False)
+    rater_email = db.Column(db.String(120), nullable=False)
+    score = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint('profile_email', 'rater_email', name='unique_profile_rating'),)
+
+
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_email = db.Column(db.String(120), nullable=False)
+    target_type = db.Column(db.String(30), nullable=False)
+    target_id = db.Column(db.String(120), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='nowe')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 with app.app_context():
     db.create_all()
     inspector = inspect(db.engine)
@@ -111,6 +155,14 @@ with app.app_context():
     ensure_column('user', 'is_admin', "ALTER TABLE user ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT 0")
     ensure_column('user', 'session_token', "ALTER TABLE user ADD COLUMN session_token VARCHAR(64) NOT NULL DEFAULT ''")
     ensure_column('user', 'session_expires_at', "ALTER TABLE user ADD COLUMN session_expires_at DATETIME")
+    ensure_column('user', 'bio', "ALTER TABLE user ADD COLUMN bio TEXT NOT NULL DEFAULT ''")
+    ensure_column('user', 'location', "ALTER TABLE user ADD COLUMN location VARCHAR(120) NOT NULL DEFAULT ''")
+    ensure_column('user', 'avatar_filename', "ALTER TABLE user ADD COLUMN avatar_filename VARCHAR(255) NOT NULL DEFAULT ''")
+    ensure_column('user', 'banner_filename', "ALTER TABLE user ADD COLUMN banner_filename VARCHAR(255) NOT NULL DEFAULT ''")
+    ensure_column('user', 'profile_rank', "ALTER TABLE user ADD COLUMN profile_rank VARCHAR(60) NOT NULL DEFAULT 'Nowy uczestnik'")
+    ensure_column('user', 'profile_public', "ALTER TABLE user ADD COLUMN profile_public BOOLEAN NOT NULL DEFAULT 1")
+    ensure_column('user', 'show_private_code', "ALTER TABLE user ADD COLUMN show_private_code BOOLEAN NOT NULL DEFAULT 0")
+    ensure_column('user', 'allow_messages', "ALTER TABLE user ADD COLUMN allow_messages BOOLEAN NOT NULL DEFAULT 1")
     ensure_column('card', 'user_name', "ALTER TABLE card ADD COLUMN user_name VARCHAR(120) NOT NULL DEFAULT ''")
     ensure_column('card', 'action_type', "ALTER TABLE card ADD COLUMN action_type VARCHAR(80) NOT NULL DEFAULT 'Pomysł'")
     ensure_column('card', 'city', "ALTER TABLE card ADD COLUMN city VARCHAR(120) NOT NULL DEFAULT ''")
@@ -414,14 +466,23 @@ def validate_session_on_every_request():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        form_login = request.form['email']
+        form_login = request.form['email'].strip().lower()
         form_password = request.form['password']
-        user = User.query.filter_by(email=form_login, password=form_password).first()
-        if user:
+        user = User.query.filter_by(email=form_login).first()
+        password_matches = False
+        if user and user.password.startswith(('scrypt:', 'pbkdf2:')):
+            password_matches = check_password_hash(user.password, form_password)
+        elif user:
+            password_matches = user.password == form_password
+            if password_matches:
+                user.password = generate_password_hash(form_password)
+                db.session.commit()
+
+        if user and password_matches:
             start_user_session(user)
             return redirect('/index')
 
-        error = "Nieprawidłowy login lub hasło"
+        error = 'Nieprawidłowy login lub hasło'
         return render_template('login.html', error=error)
     else:
         return render_template('login.html')
@@ -430,7 +491,7 @@ def login():
 def register():
     if request.method == 'POST':
         name = request.form['name'].strip()
-        email = request.form['email']
+        email = request.form['email'].strip().lower()
         password = request.form['password']
 
         if not name:
@@ -446,9 +507,10 @@ def register():
         new_user = User(
             name=name,
             email=email,
-            password=password,
+            password=generate_password_hash(password),
             private_code=generate_private_code(),
             security_code=generate_security_code(),
+            profile_rank='Nowy uczestnik',
         )
         db.session.add(new_user)
         db.session.commit()
@@ -480,7 +542,7 @@ def account():
             new_password = request.form.get('new_password', '')
             confirm_password = request.form.get('confirm_password', '')
 
-            if current_password != user.password:
+            if not check_password_hash(user.password, current_password):
                 drafts = Card.query.filter_by(user_email=user_email, is_draft=True).order_by(Card.id.desc()).all()
                 return render_template('account.html', user=user, drafts=drafts, error='Aktualne hasło jest nieprawidłowe', draft_error=False, message=None)
 
@@ -492,9 +554,39 @@ def account():
                 drafts = Card.query.filter_by(user_email=user_email, is_draft=True).order_by(Card.id.desc()).all()
                 return render_template('account.html', user=user, drafts=drafts, error='Nowe hasła nie są takie same', draft_error=False, message=None)
 
-            user.password = new_password
+            user.password = generate_password_hash(new_password)
             db.session.commit()
             return redirect('/account?message=password_changed')
+
+        if action == 'update_profile':
+            new_name = request.form.get('name', '').strip()
+            if not new_name:
+                return render_template('account.html', user=user, drafts=[], error='Podaj nick', draft_error=False, message=None)
+            user.name = new_name
+            user.bio = request.form.get('bio', '').strip()[:1000]
+            user.location = request.form.get('location', '').strip()[:120]
+            avatar = request.files.get('avatar')
+            banner = request.files.get('banner')
+            for upload, field_name in ((avatar, 'avatar_filename'), (banner, 'banner_filename')):
+                if not upload or not upload.filename:
+                    continue
+                safe_name = secure_filename(upload.filename)
+                extension = os.path.splitext(safe_name)[1].lower()
+                if extension not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+                    return redirect('/account?message=avatar_error')
+                stored_name = f'{secrets.token_hex(12)}{extension}'
+                upload.save(os.path.join(upload_dir, stored_name))
+                setattr(user, field_name, stored_name)
+            db.session.commit()
+            session['user_name'] = new_name
+            return redirect('/account?message=profile_saved')
+
+        if action == 'update_settings':
+            user.profile_public = request.form.get('profile_public') == 'on'
+            user.show_private_code = request.form.get('show_private_code') == 'on'
+            user.allow_messages = request.form.get('allow_messages') == 'on'
+            db.session.commit()
+            return redirect('/account?message=settings_saved')
 
         new_name = request.form.get('name', '').strip()
         if not new_name:
@@ -513,8 +605,74 @@ def account():
         message = 'Hasło zostało zmienione'
     elif message_key == 'name_saved':
         message = 'Nick został zapisany'
+    elif message_key == 'profile_saved':
+        message = 'Profil został zapisany'
+    elif message_key == 'settings_saved':
+        message = 'Ustawienia prywatności zostały zapisane'
+    elif message_key == 'avatar_error':
+        message = 'Dozwolone formaty zdjęcia: JPG, PNG, WEBP lub GIF'
 
     return render_template('account.html', user=user, drafts=drafts, draft_error=draft_error, message=message)
+
+
+@app.route('/profile/<int:user_id>', methods=['GET', 'POST'])
+def profile(user_id):
+    profile_user = User.query.get(user_id)
+    if profile_user is None:
+        return redirect('/index')
+    current_user = get_current_user()
+    if not profile_user.profile_public and (current_user is None or current_user.id != profile_user.id):
+        return render_template('profile.html', profile_user=profile_user, is_private=True, rating_average=None, rating_count=0, user_rating=None)
+
+    ratings = ProfileRating.query.filter_by(profile_email=profile_user.email).all()
+    profile_cards = Card.query.filter_by(user_email=profile_user.email, is_draft=False).order_by(Card.id.desc()).all()
+    profile_rank = profile_user.profile_rank if profile_user.profile_rank in PROFILE_RANKS else 'Nowy uczestnik'
+    user_rating = None
+    if current_user:
+        existing_rating = ProfileRating.query.filter_by(profile_email=profile_user.email, rater_email=current_user.email).first()
+        user_rating = existing_rating.score if existing_rating else None
+    return render_template(
+        'profile.html', profile_user=profile_user, is_private=False,
+        rating_average=round(sum(item.score for item in ratings) / len(ratings), 1) if ratings else None,
+        rating_count=len(ratings), user_rating=user_rating,
+        profile_cards=profile_cards, profile_rank=profile_rank,
+        rank_benefit=RANK_BENEFITS[profile_rank],
+        rank_features=RANK_FEATURES[profile_rank],
+    )
+
+
+@app.route('/profile/<int:user_id>/rate', methods=['POST'])
+def rate_profile(user_id):
+    current_user = get_current_user()
+    profile_user = User.query.get(user_id)
+    if current_user is None or profile_user is None or current_user.id == profile_user.id:
+        return redirect(f'/profile/{user_id}')
+    try:
+        score = max(1, min(5, int(request.form.get('score', '0'))))
+    except ValueError:
+        return redirect(f'/profile/{user_id}')
+    rating = ProfileRating.query.filter_by(profile_email=profile_user.email, rater_email=current_user.email).first()
+    if rating is None:
+        rating = ProfileRating(profile_email=profile_user.email, rater_email=current_user.email, score=score)
+        db.session.add(rating)
+    else:
+        rating.score = score
+    db.session.commit()
+    return redirect(f'/profile/{user_id}')
+
+
+@app.route('/report', methods=['POST'])
+def report_content():
+    current_user = get_current_user()
+    if current_user is None:
+        return redirect('/login')
+    target_type = request.form.get('target_type', '').strip()
+    target_id = request.form.get('target_id', '').strip()
+    reason = request.form.get('reason', '').strip()
+    if target_type in ('profil', 'karta', 'komentarz') and target_id and reason:
+        db.session.add(Report(reporter_email=current_user.email, target_type=target_type, target_id=target_id, reason=reason[:1000]))
+        db.session.commit()
+    return redirect(request.form.get('next', '/index'))
 
 
 @app.route('/private_chat')
@@ -625,6 +783,8 @@ def api_private_chat_send():
     partner_user, chat_error = get_chat_partner_by_code(partner_code, current_user.email)
     if partner_user is None:
         return jsonify({'ok': False, 'error': chat_error}), 400
+    if not partner_user.allow_messages and partner_user.email != current_user.email:
+        return jsonify({'ok': False, 'error': 'Ten użytkownik nie przyjmuje nowych wiadomości.'}), 403
     if not message_text:
         return jsonify({'ok': False, 'error': 'Wiadomość nie może być pusta.'}), 400
     if len(message_text) > 1000:
@@ -789,7 +949,7 @@ def admin_accounts():
                 elif new_password != confirm_password:
                     error = 'Nowe hasła nie są takie same'
                 else:
-                    target_user.password = new_password
+                    target_user.password = generate_password_hash(new_password)
                     db.session.commit()
                     message = f'Hasło dla {target_email} zostało zmienione'
 
@@ -841,6 +1001,17 @@ def admin_accounts():
                 role_name = 'administratorem' if target_user.is_admin else 'zwykłym użytkownikiem'
                 message = f'{target_email} jest teraz {role_name}'
 
+        elif action == 'admin_change_rank':
+            target_rank = request.form.get('profile_rank', '').strip()
+            if target_user is None:
+                error = 'Użytkownik nie istnieje'
+            elif target_rank not in PROFILE_RANKS:
+                error = 'Nieprawidłowa ranga'
+            else:
+                target_user.profile_rank = target_rank
+                db.session.commit()
+                message = f'Ranga użytkownika {target_email} została zmieniona na: {target_rank}'
+
         elif action == 'admin_logout_user':
             if verified_email != target_email:
                 error = 'Najpierw potwierdź tożsamość użytkownika przez e-mail i kod'
@@ -853,6 +1024,16 @@ def admin_accounts():
                 target_user.session_expires_at = None
                 db.session.commit()
                 message = f'Wszystkie sesje użytkownika {target_email} zostały zakończone'
+
+        elif action in ('resolve_report', 'delete_report'):
+            report = Report.query.get(request.form.get('report_id', type=int))
+            if report:
+                if action == 'resolve_report':
+                    report.status = 'zamknięte'
+                else:
+                    db.session.delete(report)
+                db.session.commit()
+                message = 'Zgłoszenie zostało zaktualizowane'
 
     users_query = User.query
     if search_query:
@@ -870,7 +1051,9 @@ def admin_accounts():
         'drafts': Card.query.filter_by(is_draft=True).count(),
         'comments': Comment.query.count(),
         'messages': PrivateMessage.query.count(),
+        'reports': Report.query.filter_by(status='nowe').count(),
     }
+    reports = Report.query.order_by(Report.id.desc()).limit(50).all()
 
     return render_template(
         'admin_accounts.html',
@@ -882,6 +1065,8 @@ def admin_accounts():
         stats=stats,
         search_query=search_query,
         role_filter=role_filter,
+        reports=reports,
+        profile_ranks=PROFILE_RANKS,
     )
     
 @app.route('/index')
@@ -907,6 +1092,7 @@ def index():
         participation.card_id
         for participation in Participation.query.filter_by(user_email=current_user_email).all()
     } if current_user_email else set()
+    author_users = {user.email: user for user in User.query.filter(User.email.in_([card.user_email for card in cards])).all()}
 
     return render_template(
         'index.html',
@@ -918,6 +1104,7 @@ def index():
         action_types=ACTION_TYPES,
         selected_action_type=selected_action_type,
         selected_city=selected_city,
+        author_users=author_users,
     )
 
 # Uruchomienie strony z kartą
@@ -935,6 +1122,7 @@ def card(id):
         user_email=session.get('user_email')
     ).first() is not None
     participants = Participation.query.filter_by(card_id=id).order_by(Participation.created_at.desc()).all()
+    author_user = User.query.filter_by(email=card.user_email).first()
 
     return render_template(
         'card.html',
@@ -943,6 +1131,7 @@ def card(id):
         participation_count=participation_count,
         has_joined=has_joined,
         participants=participants,
+        author_user=author_user,
     )
 
 

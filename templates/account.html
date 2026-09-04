@@ -45,35 +45,60 @@
 
             <p class="account-email">{{ user.email }}</p>
 
-            <div class="private-code-box">
+            <div class="account-tiles">
+            <div class="profile-actions">
+                <a href="/profile/{{ user.id }}" class="form__button">Zobacz publiczny profil</a>
+            </div>
+
+            <div class="private-code-box account-tile">
                 <p class="private-code-box__label">Twój kod do prywatnych wiadomości</p>
                 <p class="private-code-box__value">{{ user.private_code }}</p>
                 <p class="private-code-box__hint">Podaj ten kod wybranej osobie, aby mogła napisać do Ciebie na czacie prywatnym.</p>
             </div>
 
-            <div class="private-code-box private-code-box--security">
+            <div class="private-code-box private-code-box--security account-tile">
                 <p class="private-code-box__label">Twój 5-cyfrowy kod zabezpieczający</p>
                 <p class="private-code-box__value">{{ user.security_code }}</p>
                 <p class="private-code-box__hint">Podawaj go tylko zaufanej osobie. Admin używa go do potwierdzenia Twojej tożsamości.</p>
             </div>
 
-            <a href="/private_chat" class="form__button form__button--wide account-link">Przejdź do czatu prywatnego</a>
+            <div class="account-tile account-tile--action"><a href="/private_chat" class="form__button form__button--wide account-link">Przejdź do czatu prywatnego</a></div>
 
             {% if session.get('is_admin') %}
-            <a href="/admin/accounts" class="form__button form__button--wide account-link">Admin: ustawienia kont</a>
+            <div class="account-tile account-tile--action"><a href="/admin/accounts" class="form__button form__button--wide account-link">Admin: ustawienia kont</a></div>
             {% endif %}
 
-            <form action="/account" method="POST" class="account-form">
-                <input type="hidden" name="action" value="update_name">
+            <details class="account-tile account-settings-tile">
+                <summary>Profil <span>Edytuj zdjęcie, nick i opis</span></summary>
+                <form action="/account" method="POST" enctype="multipart/form-data" class="account-form">
+                <input type="hidden" name="action" value="update_profile">
                 <label for="name">
                     <span>Nick</span>
                     <input class="form__input" type="text" id="name" name="name" value="{{ user.name }}" required>
                 </label>
-                <button type="submit" class="form__button form__button--wide">Zapisz nick</button>
-            </form>
+                <label for="location"><span>Lokalizacja</span><input class="form__input" type="text" id="location" name="location" value="{{ user.location }}" maxlength="120" placeholder="np. Warszawa"></label>
+                <label for="bio"><span>O mnie</span><textarea class="form__text" id="bio" name="bio" maxlength="1000" placeholder="Napisz kilka słów o sobie">{{ user.bio }}</textarea></label>
+                <label for="avatar"><span>Zdjęcie profilowe</span><input class="form__input" type="file" id="avatar" name="avatar" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+                <label for="banner"><span>Baner profilu</span><input class="form__input" type="file" id="banner" name="banner" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+                <button type="submit" class="form__button form__button--wide">Zapisz profil</button>
+                </form>
+            </details>
 
-            <form action="/account" method="POST" class="account-form">
-                <input type="hidden" name="action" value="change_password">
+            <details class="drafts-panel settings-panel account-tile account-settings-tile">
+                <summary>Prywatność i personalizacja <span>Zarządzaj widocznością</span></summary>
+                <form action="/account" method="POST" class="account-form">
+                    <input type="hidden" name="action" value="update_settings">
+                    <label class="toggle-row"><input type="checkbox" name="profile_public" {% if user.profile_public %}checked{% endif %}><span>Profil widoczny publicznie</span></label>
+                    <label class="toggle-row"><input type="checkbox" name="show_private_code" {% if user.show_private_code %}checked{% endif %}><span>Pokazuj mój kod do czatu na profilu</span></label>
+                    <label class="toggle-row"><input type="checkbox" name="allow_messages" {% if user.allow_messages %}checked{% endif %}><span>Pozwalaj innym rozpoczynać ze mną czat</span></label>
+                    <button type="submit" class="form__button form__button--wide">Zapisz ustawienia</button>
+                </form>
+            </details>
+
+            <details class="account-tile account-settings-tile">
+                <summary>Bezpieczeństwo <span>Zmień hasło</span></summary>
+                <form action="/account" method="POST" class="account-form">
+                    <input type="hidden" name="action" value="change_password">
                 <label for="current_password">
                     <span>Aktualne hasło</span>
                     <input class="form__input" type="password" id="current_password" name="current_password" required>
@@ -87,9 +112,10 @@
                     <input class="form__input" type="password" id="confirm_password" name="confirm_password" minlength="6" required>
                 </label>
                 <button type="submit" class="form__button form__button--wide">Zmień hasło</button>
-            </form>
+                </form>
+            </details>
 
-            <section class="drafts-panel">
+            <section class="drafts-panel account-tile account-tile--wide">
                 <div class="drafts-panel__header">
                     <h2>Moje kopie robocze</h2>
                     <a href="/create" class="main__link drafts-panel__new">Nowa kopia robocza</a>
@@ -122,6 +148,7 @@
                 <p class="empty-state drafts-panel__empty">Brak kopii roboczych.</p>
                 {% endif %}
             </section>
+            </div>
 
             <a href="/logout" class="form__button form__button--wide account-link">Wyloguj się</a>
 

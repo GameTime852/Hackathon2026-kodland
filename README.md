@@ -7,6 +7,7 @@ Portal lokalnych inicjatyw społecznych i ekologicznych. Użytkownicy mogą publ
 ### Dla użytkowników
 
 - rejestracja, logowanie i wylogowanie,
+- hashowanie haseł,
 - edycja nicku oraz hasła,
 - tworzenie, edycja i usuwanie własnych kart,
 - zapisywanie kart jako szkiców i późniejsza publikacja,

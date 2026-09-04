@@ -44,7 +44,7 @@
         <div class="main__block">
           <h2 class="main__subtitle">{{card.subtitle}}</h2>
           <p class="card-page__author">{{ card.action_type or 'Pomysł' }} • {{ card.city or 'Bez miasta' }}</p>
-          <p class="card-page__author">Autor: {{ card.user_name or card.user_email }}</p>
+          <p class="card-page__author">Autor: {% if author_user %}<a class="author-link" href="/profile/{{ author_user.id }}">{{ card.user_name or card.user_email }}</a>{% else %}{{ card.user_name or card.user_email }}{% endif %}</p>
           <div class="main__text">
           {{card.text}}
           </div>
@@ -61,6 +61,7 @@
           </div>
           {% endif %}
           <a class="main__link" href="/index">Powrót do listy</a>
+          {% if session.get('user_email') %}<details class="report-details"><summary>Zgłoś kartę</summary><form action="/report" method="POST" class="report-form"><input type="hidden" name="target_type" value="karta"><input type="hidden" name="target_id" value="{{ card.id }}"><input type="hidden" name="next" value="/card/{{ card.id }}"><label for="card-report">Powód zgłoszenia</label><textarea id="card-report" name="reason" class="form__text" maxlength="1000" placeholder="Opisz problem" required></textarea><button type="submit" class="main__link main__link--danger">Wyślij zgłoszenie</button></form></details>{% endif %}
         </div>
       </div>
 
@@ -96,6 +97,7 @@
                 <button type="submit" class="main__link main__link--danger">Usuń</button>
               </form>
               {% endif %}
+              {% if session.get('user_email') and session.get('user_email') != comment.user_email %}<form action="/report" method="POST" class="inline-actions"><input type="hidden" name="target_type" value="komentarz"><input type="hidden" name="target_id" value="{{ comment.id }}"><input type="hidden" name="next" value="/card/{{ card.id }}"><input type="hidden" name="reason" value="Niewłaściwa treść"><button type="submit" class="main__link main__link--danger">Zgłoś</button></form>{% endif %}
             </article>
             {% else %}
             <p class="panel__text">Brak komentarzy. Bądź pierwszą osobą, która zacznie rozmowę.</p>

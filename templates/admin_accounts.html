@@ -55,6 +55,14 @@
                 <div class="admin-stat"><strong>{{ stats.drafts }}</strong><span>szkiców</span></div>
                 <div class="admin-stat"><strong>{{ stats.comments }}</strong><span>komentarzy</span></div>
                 <div class="admin-stat"><strong>{{ stats.messages }}</strong><span>wiadomości</span></div>
+                <div class="admin-stat"><strong>{{ stats.reports }}</strong><span>nowych zgłoszeń</span></div>
+            </section>
+
+            <section class="drafts-panel">
+                <div class="drafts-panel__header"><h2>Zgłoszenia społeczności</h2></div>
+                {% for report in reports %}
+                <article class="report-admin-item"><p><strong>{{ report.target_type }}</strong> #{{ report.target_id }} · {{ report.status }}</p><p>{{ report.reason }}</p><small>zgłoszone przez {{ report.reporter_email }}</small><div class="admin-actions"><form action="/admin/accounts" method="POST"><input type="hidden" name="action" value="resolve_report"><input type="hidden" name="report_id" value="{{ report.id }}"><button class="form__button form__button--compact" type="submit">Zamknij</button></form><form action="/admin/accounts" method="POST"><input type="hidden" name="action" value="delete_report"><input type="hidden" name="report_id" value="{{ report.id }}"><button class="form__button form__button--compact account-delete" type="submit">Usuń</button></form></div></article>
+                {% else %}<p class="empty-state drafts-panel__empty">Brak zgłoszeń.</p>{% endfor %}
             </section>
 
             <section class="drafts-panel">
@@ -158,6 +166,7 @@
                             <tr>
                                 <th>E-mail</th>
                                 <th>Nick</th>
+                                <th>Ranga</th>
                                 <th>Rola</th>
                                 <th>Akcje</th>
                             </tr>
@@ -167,6 +176,16 @@
                             <tr>
                                 <td>{{ item.email }}</td>
                                 <td>{{ item.name }}</td>
+                                <td>
+                                    <form action="/admin/accounts" method="POST" class="admin-rank-form">
+                                        <input type="hidden" name="action" value="admin_change_rank">
+                                        <input type="hidden" name="target_email" value="{{ item.email }}">
+                                        <select class="form__input form__input--compact" name="profile_rank" aria-label="Ranga użytkownika {{ item.name }}">
+                                            {% for rank in profile_ranks %}<option value="{{ rank }}" {% if item.profile_rank == rank %}selected{% endif %}>{{ rank }}</option>{% endfor %}
+                                        </select>
+                                        <button type="submit" class="form__button form__button--compact">Zapisz</button>
+                                    </form>
+                                </td>
                                 <td>{% if item.is_admin %}Admin{% else %}Użytkownik{% endif %}</td>
                                 <td class="admin-actions">
                                     <form action="/admin/accounts" method="POST">

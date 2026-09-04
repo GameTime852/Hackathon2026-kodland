@@ -95,7 +95,7 @@
               <h2 class="card__title">{{el.title}}</h2>
               <p class="card__subtitle">{{el.subtitle}}</p>
               <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
-              <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
+              <p class="card__meta">Autor: {% if author_users.get(el.user_email) %}<a class="author-link" href="/profile/{{ author_users[el.user_email].id }}">{{ el.user_name or el.user_email }}</a>{% else %}{{ el.user_name or el.user_email }}{% endif %}</p>
               <p class="card__participation-summary"><strong>{{ participation_counts[el.id] }}</strong> osób wchodzi w to!</p>
             </div>
           </a>
@@ -125,7 +125,7 @@
               <h2 class="card__title">{{el.title}}</h2>
               <p class="card__subtitle">{{el.subtitle}}</p>
               <p class="card__meta">{{ el.action_type or 'Pomysł' }} • {{ el.city or 'Bez miasta' }}</p>
-              <p class="card__meta">Autor: {{ el.user_name or el.user_email }}</p>
+              <p class="card__meta">Autor: {% if author_users.get(el.user_email) %}<a class="author-link" href="/profile/{{ author_users[el.user_email].id }}">{{ el.user_name or el.user_email }}</a>{% else %}{{ el.user_name or el.user_email }}{% endif %}</p>
               <p class="card__participation-summary"><strong>{{ participation_counts[el.id] }}</strong> osób wchodzi w to!</p>
             </div>
           </a>

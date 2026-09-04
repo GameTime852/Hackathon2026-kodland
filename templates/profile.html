@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil {{ profile_user.name }}</title>
+  <link rel="stylesheet" href="../static/css/style.css">
+  <link rel="icon" href="../static/img/eko.webp">
+  <script src="../static/js/dark-mode.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <a href="/index"><img src="../static/img/eko.webp" alt="logo" width="30" height="30"></a>
+    <ul class="main-list">
+      <li><button id="theme-toggle" class="theme-toggle" type="button" onclick="toggleDarkMode();" aria-label="Zmień motyw">🌙</button></li>
+      <li><a class="account-button" href="/account">Konto</a></li>
+      <li><a class="account-button" href="/index">Powrót</a></li>
+    </ul>
+  </header>
+  <main class="main-login">
+    <section class="login account-panel profile-page">
+      {% if is_private %}
+      <h1>Profil prywatny</h1>
+      <p class="panel__text">Ten użytkownik ograniczył widoczność swojego profilu.</p>
+      {% else %}
+      <div class="profile-banner{% if profile_user.banner_filename %} profile-banner--image{% endif %}"{% if profile_user.banner_filename %} style="background-image: url('../static/img/uploads/{{ profile_user.banner_filename }}');"{% endif %}></div>
+      <div class="profile-hero">
+        {% if profile_user.avatar_filename %}<img class="profile-avatar" src="../static/img/uploads/{{ profile_user.avatar_filename }}" alt="Zdjęcie {{ profile_user.name }}">{% else %}<div class="profile-avatar profile-avatar--empty">{{ profile_user.name[:1]|upper }}</div>{% endif %}
+        <div class="profile-identity"><h1>{{ profile_user.name }}</h1><p class="profile-rank">{{ profile_rank }}</p><p class="profile-rank-benefit">{{ rank_benefit }}</p>{% if profile_user.location %}<p class="account-email">{{ profile_user.location }}</p>{% endif %}</div>
+      </div>
+      <p class="profile-bio">{{ profile_user.bio or 'Ten użytkownik nie dodał jeszcze opisu.' }}</p>
+      <div class="profile-rating"><strong>{{ rating_average or '—' }}</strong><span>★</span><small>{{ rating_count }} ocen</small></div>
+      <section class="rank-features"><h2>Specjalne funkcje rangi</h2><div class="rank-feature-list">{% for feature in rank_features %}<span class="rank-feature">✓ {{ feature }}</span>{% endfor %}</div></section>
+      {% if session.get('user_email') and session.get('user_email') != profile_user.email %}
+      <form action="/profile/{{ profile_user.id }}/rate" method="POST" class="rating-form">
+        <label for="score">Oceń profil</label><select id="score" name="score" class="form__input"><option value="5">5 - świetny</option><option value="4">4 - bardzo dobry</option><option value="3">3 - dobry</option><option value="2">2 - słaby</option><option value="1">1 - niepolecany</option></select>
+        <button class="form__button" type="submit">Zapisz ocenę</button>
+      </form>
+      {% endif %}
+      {% if profile_user.show_private_code %}<div class="private-code-box"><p class="private-code-box__label">Kod do czatu</p><p class="private-code-box__value">{{ profile_user.private_code }}</p></div>{% endif %}
+      <section class="profile-cards">
+        <div class="profile-section-heading"><h2>Akcje użytkownika</h2><span>{{ profile_cards|length }} kart</span></div>
+        {% if profile_cards %}
+        <div class="profile-card-grid">
+          {% for card in profile_cards %}
+          <a class="profile-card" href="/card/{{ card.id }}"><span class="profile-card__type">{{ card.action_type or 'Pomysł' }}</span><h3>{{ card.title }}</h3><p>{{ card.subtitle }}</p><small>{{ card.city or 'Bez miasta' }}</small></a>
+          {% endfor %}
+        </div>
+        {% else %}<p class="empty-state">Ten użytkownik nie opublikował jeszcze żadnej karty.</p>{% endif %}
+      </section>
+      {% endif %}
+      {% if session.get('user_email') and session.get('user_email') != profile_user.email %}
+      <details class="report-details">
+        <summary>Zgłoś profil</summary>
+        <form action="/report" method="POST" class="report-form"><input type="hidden" name="target_type" value="profil"><input type="hidden" name="target_id" value="{{ profile_user.id }}"><input type="hidden" name="next" value="/profile/{{ profile_user.id }}"><label for="profile-report">Powód zgłoszenia</label><textarea id="profile-report" name="reason" class="form__text" maxlength="1000" placeholder="Opisz problem" required></textarea><button class="form__button main__link--danger" type="submit">Wyślij zgłoszenie</button></form>
+      </details>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

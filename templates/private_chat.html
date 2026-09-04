@@ -41,7 +41,7 @@
         <section class="private-chat-layout">
             <aside class="panel private-chat-side">
                 <h1 class="panel__title">Prywatne wiadomosci</h1>
-                <p class="panel__text">Twoj kod: <strong>{{ current_user.private_code }}</strong></p>
+                {% if current_user.show_private_code %}<p class="panel__text">Twój kod: <strong>{{ current_user.private_code }}</strong></p>{% else %}<p class="panel__text">Kod do czatu jest ukryty. Zmień to w ustawieniach konta.</p>{% endif %}
                 <p class="panel__text">Podaj kod osoby, z ktora chcesz pisac.</p>
 
                 <form action="/private_chat" method="get" class="comment-form">
